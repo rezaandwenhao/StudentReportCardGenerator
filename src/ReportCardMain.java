@@ -27,11 +27,34 @@ public class ReportCardMain {
 	Map<String, String> testIdToCourseIdMap = new HashMap<>();
 	Map<String, List<Test>> courseIdToTestIdsMap = new HashMap<>();
 	Map<String, Double> testIdToWeightMap = new HashMap<>();
+	Map<String, Course> courseIdToCourseMap = new HashMap<>();
+	Map<Entry<String, String>, Double> twoIdsToMarkMap = new HashMap<>();
+	createMaps(studentIdToStudentMap, studentIdToTestIdMap, testIdToCourseIdMap, courseIdToTestIdsMap,
+		testIdToWeightMap, courseIdToCourseMap, twoIdsToMarkMap);
+
+	setEachStudentCourses(studentIdToTestIdMap, testIdToCourseIdMap, studentIdToStudentMap, courseIdToCourseMap);
+	calculateGrades(courseIdToTestIdsMap, testIdToWeightMap, twoIdsToMarkMap);
+	generateOutput();
+    }
+
+    /**
+     * Create all the needed maps
+     * 
+     * @param studentIdToStudentMap, studentIdToTestIdMap, testIdToCourseIdMap,
+     *        courseIdToTestIdsMap, testIdToWeightMap, courseIdToCourseMap,
+     *        twoIdsToMarkMap
+     */
+    private static void createMaps(Map<String, Student> studentIdToStudentMap,
+	    Map<String, List<String>> studentIdToTestIdMap, Map<String, String> testIdToCourseIdMap,
+	    Map<String, List<Test>> courseIdToTestIdsMap, Map<String, Double> testIdToWeightMap,
+	    Map<String, Course> courseIdToCourseMap, Map<Entry<String, String>, Double> twoIdsToMarkMap) {
 	// Student Id to student Mapping by looping students array list
 	for (Student s : students) {
 	    studentIdToStudentMap.put(s.getStudentId(), s);
 	}
 	// Student Id to test ids list mapping by looping marks array list
+	// Also create a map where key is an entry (test_id, student id pair), the value
+	// is the mark corresponding to the given student id and test id
 	for (Mark mark : marks) {
 	    if (studentIdToTestIdMap.containsKey(mark.getStudent_id())) {
 		studentIdToTestIdMap.get(mark.getStudent_id()).add(mark.getTest_id());
@@ -40,23 +63,25 @@ public class ReportCardMain {
 		newTestIdsList.add(mark.getTest_id());
 		studentIdToTestIdMap.put(mark.getStudent_id(), newTestIdsList);
 	    }
+	    Map.Entry<String, String> en = new AbstractMap.SimpleEntry<String, String>(mark.getTest_id(),
+		    mark.getStudent_id());
+	    twoIdsToMarkMap.put(en, mark.getMark());
 	}
-	// Test id to course id mapping by looping tests array list
-	for (Test test : tests) {
-	    testIdToCourseIdMap.put(test.getId(), test.getCourse_id());
-	}
-	// course id to test ids list mapping and test id to weight mapping by looping
-	// tests array list
+	// Course id to test ids list mapping, test id to weight mapping, test id to
+	// course id mapping
+	// by looping tests array list
 	for (Test t : tests) {
+	    testIdToCourseIdMap.put(t.getId(), t.getCourse_id());
 	    if (!courseIdToTestIdsMap.containsKey(t.getCourse_id()))
 		courseIdToTestIdsMap.put(t.getCourse_id(), new ArrayList<>());
 	    courseIdToTestIdsMap.get(t.getCourse_id()).add(t);
 	    testIdToWeightMap.put(t.getId(), t.getWeight());
-	}
 
-	setEachStudentCourses(studentIdToTestIdMap, testIdToCourseIdMap, studentIdToStudentMap);
-	calculateGrades(courseIdToTestIdsMap, testIdToWeightMap);
-	generateOutput();
+	}
+	// Course id to Course mapping by looping courses array list
+	for (Course c : courses) {
+	    courseIdToCourseMap.put(c.getId(), c);
+	}
     }
 
     /**
@@ -66,7 +91,7 @@ public class ReportCardMain {
      * @param courseIdToTestIdsMap, testIdToWeightMap
      */
     private static void calculateGrades(Map<String, List<Test>> courseIdToTestIdsMap,
-	    Map<String, Double> testIdToWeightMap) {
+	    Map<String, Double> testIdToWeightMap, Map<Entry<String, String>, Double> twoIdsToMarkMap) {
 	for (Student student : students) {
 	    List<Double> finalGrades = new ArrayList<>();
 	    for (Course course : student.getCourses()) {
@@ -74,8 +99,9 @@ public class ReportCardMain {
 		String courseId = course.getId();
 		List<Test> relatedTests = courseIdToTestIdsMap.get(courseId);
 		for (Test eachTest : relatedTests) {
-		    finalGrade += testIdToWeightMap.get(eachTest.getId()) / 100
-			    * getMarkWith2Ids(student.getStudentId(), eachTest.getId());
+		    Map.Entry<String, String> en = new AbstractMap.SimpleEntry<String, String>(eachTest.getId(),
+			    student.getStudentId());
+		    finalGrade += testIdToWeightMap.get(eachTest.getId()) / 100 * twoIdsToMarkMap.get(en);
 		}
 		finalGrades.add(finalGrade); // when printing, needs to truncate to 2 decimals
 	    }
@@ -95,7 +121,8 @@ public class ReportCardMain {
      * @param studentIdToTestIdMap, testIdToCourseIdMap, studentIdToStudentMap
      */
     private static void setEachStudentCourses(Map<String, List<String>> studentIdToTestIdMap,
-	    Map<String, String> testIdToCourseIdMap, Map<String, Student> studentIdToStudentMap) {
+	    Map<String, String> testIdToCourseIdMap, Map<String, Student> studentIdToStudentMap,
+	    Map<String, Course> courseIdToCourseMap) {
 	for (Entry<String, List<String>> entry : studentIdToTestIdMap.entrySet()) {
 	    // each entry represents one student
 	    List<Course> myCourses = new ArrayList<>();
@@ -110,7 +137,7 @@ public class ReportCardMain {
 	    // transfer each distinct course id to Course and add to one student's course
 	    // list
 	    courseIds.forEach(courseId -> {
-		myCourses.add(getCourseWithCourseId(courseId));
+		myCourses.add(courseIdToCourseMap.get(courseId));
 	    });
 	    // sorted student's course order in regarding to course id
 	    Collections.sort(myCourses, (a, b) -> a.getId().compareTo(b.getId()));
@@ -149,32 +176,6 @@ public class ReportCardMain {
 	} catch (IOException e) {
 	    e.printStackTrace();
 	}
-    }
-
-    /**
-     * @param courseId
-     * @return course the course corresponding to the given course id
-     */
-    private static Course getCourseWithCourseId(String courseId) {
-	for (Course course : courses) {
-	    if (course.getId().equals(courseId)) {
-		return course;
-	    }
-	}
-	return null;
-    }
-
-    /**
-     * @param studentId, testId
-     * @return the mark corresponding to the given student id and test id
-     */
-    private static double getMarkWith2Ids(String studentId, String testId) {
-	for (Mark mark : marks) {
-	    if (mark.getStudent_id().equals(studentId) && mark.getTest_id().equals(testId)) {
-		return mark.getMark();
-	    }
-	}
-	return 0;
     }
 
     /**
