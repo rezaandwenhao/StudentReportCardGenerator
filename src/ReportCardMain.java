@@ -1,7 +1,9 @@
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.text.DecimalFormat;
 import java.util.*;
 import java.util.Map.Entry;
 
@@ -13,29 +15,23 @@ public class ReportCardMain {
     private static List<Mark> marks = new ArrayList<>();
 
     public static void main(String[] args) {
+	// parse each input file to fill the courses, students, tests, marks lists
 	parseCsv("courses.csv");
 	parseCsv("marks.csv");
 	parseCsv("students.csv");
 	parseCsv("tests.csv");
 
-//	Student s = new Student();
-
-//	HashMap<String, Student> studentIdToStudentMap = s.getStudentIdToStudentMapping(students);
-	HashMap<String, Student> studentIdToStudentMap = new HashMap<>();
+	// Using hashmap so that data entry doesn't need to be in order according to id.
+	Map<String, Student> studentIdToStudentMap = new HashMap<>();
+	Map<String, List<String>> studentIdToTestIdMap = new HashMap<>();
+	Map<String, String> testIdToCourseIdMap = new HashMap<>();
+	Map<String, List<Test>> courseIdToTestIdsMap = new HashMap<>();
+	Map<String, Double> testIdToWeightMap = new HashMap<>();
+	// Student Id to student Mapping by looping students array list
 	for (Student s : students) {
 	    studentIdToStudentMap.put(s.getStudentId(), s);
 	}
-
-	/*
-	 * for(Course course: courses) System.out.println(course.getName());
-	 */
-
-	/*
-	 * Create a hashmap by looping the marks, take student id as key and tests as
-	 * list of tests that he takes as value
-	 */
-	/* Even the student id is not in order, it will still work */
-	HashMap<String, List<String>> studentIdToTestIdMap = new HashMap<>();
+	// Student Id to test ids list mapping by looping marks array list
 	for (Mark mark : marks) {
 	    if (studentIdToTestIdMap.containsKey(mark.getStudent_id())) {
 		studentIdToTestIdMap.get(mark.getStudent_id()).add(mark.getTest_id());
@@ -45,47 +41,12 @@ public class ReportCardMain {
 		studentIdToTestIdMap.put(mark.getStudent_id(), newTestIdsList);
 	    }
 	}
-	/*
-	 * for (String str : studentIdToTestIdMap.keySet()) {
-	 * System.out.println(studentIdToTestIdMap.get(str)); }
-	 */
-	/*
-	 * Create a hashmap by looping the tests, take test id as key and course id as
-	 * value
-	 */
-	HashMap<String, String> testIdToCourseIdMap = new HashMap<>();
+	// Test id to course id mapping by looping tests array list
 	for (Test test : tests) {
 	    testIdToCourseIdMap.put(test.getId(), test.getCourse_id());
 	}
-
-	// Figure out each student's course list
-	for (Entry<String, List<String>> entry : studentIdToTestIdMap.entrySet()) {
-	    // each entry represents one student
-	    List<Course> myCourses = new ArrayList<>();
-	    HashSet<String> courseIds = new HashSet<>();
-	    for (String testId : entry.getValue()) { // one student's testId loop
-		String courseId = testIdToCourseIdMap.get(testId); // get the corresponding courseId
-		// generate a set of course ids for one student
-		if (!courseIds.contains(courseId)) {
-		    courseIds.add(courseId);
-		}
-	    }
-	    // transfer each distinct course id to Course and add to one student's course
-	    // list
-	    courseIds.forEach(courseId -> {
-		myCourses.add(getCourseWithCourseId(courseId));
-	    });
-	    // sorted student's course order in regarding to course id
-	    Collections.sort(myCourses, (a, b) -> a.getId().compareTo(b.getId()));
-	    studentIdToStudentMap.get(entry.getKey()).setCourses(myCourses);
-	    /*
-	     * for (Course course : myCourses) System.out.println(course.getName());
-	     */ // test to print out each student's course name
-	}
-
-	Map<String, List<Test>> courseIdToTestIdsMap = new HashMap<>();
-	Map<String, Double> testIdToWeightMap = new HashMap<>();
-
+	// course id to test ids list mapping and test id to weight mapping by looping
+	// tests array list
 	for (Test t : tests) {
 	    if (!courseIdToTestIdsMap.containsKey(t.getCourse_id()))
 		courseIdToTestIdsMap.put(t.getCourse_id(), new ArrayList<>());
@@ -93,6 +54,19 @@ public class ReportCardMain {
 	    testIdToWeightMap.put(t.getId(), t.getWeight());
 	}
 
+	setEachStudentCourses(studentIdToTestIdMap, testIdToCourseIdMap, studentIdToStudentMap);
+	calculateGrades(courseIdToTestIdsMap, testIdToWeightMap);
+	generateOutput();
+    }
+
+    /**
+     * For each student, loop all his/her course and calculate the final grade for
+     * the course. When all final grades are set, calculate the total average grade
+     * 
+     * @param courseIdToTestIdsMap, testIdToWeightMap
+     */
+    private static void calculateGrades(Map<String, List<Test>> courseIdToTestIdsMap,
+	    Map<String, Double> testIdToWeightMap) {
 	for (Student student : students) {
 	    List<Double> finalGrades = new ArrayList<>();
 	    for (Course course : student.getCourses()) {
@@ -113,9 +87,74 @@ public class ReportCardMain {
 	    double totalAvg = totalGrade / finalGrades.size();
 	    student.setTotalAvg(totalAvg);
 	}
-
     }
 
+    /**
+     * Figure out each student's course list
+     * 
+     * @param studentIdToTestIdMap, testIdToCourseIdMap, studentIdToStudentMap
+     */
+    private static void setEachStudentCourses(Map<String, List<String>> studentIdToTestIdMap,
+	    Map<String, String> testIdToCourseIdMap, Map<String, Student> studentIdToStudentMap) {
+	for (Entry<String, List<String>> entry : studentIdToTestIdMap.entrySet()) {
+	    // each entry represents one student
+	    List<Course> myCourses = new ArrayList<>();
+	    HashSet<String> courseIds = new HashSet<>();
+	    for (String testId : entry.getValue()) { // one student's testId loop
+		String courseId = testIdToCourseIdMap.get(testId); // get the corresponding courseId
+		// generate a set of course ids for one student
+		if (!courseIds.contains(courseId)) {
+		    courseIds.add(courseId);
+		}
+	    }
+	    // transfer each distinct course id to Course and add to one student's course
+	    // list
+	    courseIds.forEach(courseId -> {
+		myCourses.add(getCourseWithCourseId(courseId));
+	    });
+	    // sorted student's course order in regarding to course id
+	    Collections.sort(myCourses, (a, b) -> a.getId().compareTo(b.getId()));
+	    studentIdToStudentMap.get(entry.getKey()).setCourses(myCourses);
+	}
+    }
+
+    /**
+     * All information is ready, loop each student to output a txt file
+     */
+    private static void generateOutput() {
+	DecimalFormat df2 = new DecimalFormat("#.00");
+	try {
+	    FileWriter fw = new FileWriter("output.txt", false);
+	    StringBuilder sb = new StringBuilder();
+	    for (Student student : students) {
+		sb.append("Student Id: " + student.getStudentId() + ", ");
+		sb.append("name: " + student.getName() + System.lineSeparator());
+		sb.append("Total Average:	" + df2.format(student.getTotalAvg()) + "%");
+		sb.append(System.lineSeparator());
+		sb.append(System.lineSeparator());
+		int counter = 0;
+		for (Course course : student.getCourses()) {
+		    double courseGrade = student.getFinalGrades().get(counter);
+		    sb.append("	Course: " + course.getName() + ", Teacher: " + course.getTeacher()
+			    + System.lineSeparator());
+		    sb.append("	Final Grade:	" + df2.format(courseGrade) + "%" + System.lineSeparator());
+		    sb.append(System.lineSeparator());
+		    counter++;
+		}
+		sb.append(System.lineSeparator());
+		sb.append(System.lineSeparator());
+	    }
+	    fw.write(sb.toString());
+	    fw.close();
+	} catch (IOException e) {
+	    e.printStackTrace();
+	}
+    }
+
+    /**
+     * @param courseId
+     * @return course the course corresponding to the given course id
+     */
     private static Course getCourseWithCourseId(String courseId) {
 	for (Course course : courses) {
 	    if (course.getId().equals(courseId)) {
@@ -125,6 +164,10 @@ public class ReportCardMain {
 	return null;
     }
 
+    /**
+     * @param studentId, testId
+     * @return the mark corresponding to the given student id and test id
+     */
     private static double getMarkWith2Ids(String studentId, String testId) {
 	for (Mark mark : marks) {
 	    if (mark.getStudent_id().equals(studentId) && mark.getTest_id().equals(testId)) {
@@ -134,6 +177,11 @@ public class ReportCardMain {
 	return 0;
     }
 
+    /**
+     * Giving the file name, parse the csv file to fill the corresponding array list
+     * 
+     * @param filename
+     */
     private static void parseCsv(String filename) {
 	try (BufferedReader br = new BufferedReader(new FileReader(filename))) {
 	    String line;
