@@ -9,8 +9,9 @@ public class Student {
     private String id;  
     private double totalAvg;
     private List<Course> courses;
+    private List<Double> finalGrades;
     
-    public Student (String name, String id) {
+    public Student (String id, String name) {
 	this.name = name;
 	this.id = id;
     }
@@ -19,7 +20,7 @@ public class Student {
 	
     }
     
-    public  HashMap<String, Student> getStudentIdToStudentMapping(List<Student> students) {
+    public HashMap<String, Student> getStudentIdToStudentMapping(List<Student> students) {
 	HashMap<String, Student> map = new HashMap<>();
 	for (Student s : students) {
 	    map.put(s.getStudentId(), s);
@@ -73,5 +74,19 @@ public class Student {
      */
     public void setCourses(List<Course> courses) {
 	this.courses = courses;
+    }
+
+    /**
+     * @return the finalGrades
+     */
+    public List<Double> getFinalGrades() {
+	return finalGrades;
+    }
+
+    /**
+     * @param finalGrades the finalGrades to set
+     */
+    public void setFinalGrades(List<Double> finalGrades) {
+	this.finalGrades = finalGrades;
     }
 }
