@@ -34,3 +34,12 @@ throw an error in your report card generation script.
 
 <h2> Output </h2>
 The output is generated in the <font color="red">output.txt</font> file. Here is an expample of report card: 
+
+![Screen Shot 2019-03-23 at 6 22 03 PM](https://user-images.githubusercontent.com/23584135/54872321-90219b00-4d98-11e9-97ee-3e5d31256525.png)
+
+● The first line should contain the student id and the student’s name<br />
+● The second line is the average of all the courses the student is enrolled in<br />
+● Below that, a listing of all courses and the student’s grade in each course (this
+will be determined by the mark they get in each test, and how much each test is
+worth)<br />
+● The courses are ordered by course id<br />
