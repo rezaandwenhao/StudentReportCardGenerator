@@ -1,5 +1,5 @@
 # StudentReportCardGenerator
-Backend practise. Given 4 input files, generate a text file containing the “report card” of all students in the database.
+Backend practise. Given 4 input files, generate a text file containing the “report card” of all students in the database. Throw an exception if a student has not completed the course when calculating his/her grade. Junit test protected.
 
 <h2> Input </h2>
 <h3>courses.csv</h3>
