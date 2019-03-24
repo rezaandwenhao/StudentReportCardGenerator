@@ -6,7 +6,7 @@ public class Course {
 
     public Course(String id, String name, String teacher) {
 	this.name = name;
-	this.setId(id);
+	this.id = id;
 	this.teacher = teacher;
     }
 

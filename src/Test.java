@@ -1,10 +1,10 @@
 
-public class Test {
+public class TEst {
     private String id;
     private String course_id;
     private double weight;
 
-    public Test(String id, String course_id, double weight) {
+    public TEst(String id, String course_id, double weight) {
 	this.id = id;
 	this.course_id = course_id;
 	this.weight = weight;

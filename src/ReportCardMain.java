@@ -9,10 +9,10 @@ import java.util.Map.Entry;
 
 public class ReportCardMain {
 
-    private static List<Course> courses = new ArrayList<>();
-    private static List<Student> students = new ArrayList<>();
-    private static List<Test> tests = new ArrayList<>();
-    private static List<Mark> marks = new ArrayList<>();
+    static List<Course> courses = new ArrayList<>();
+    static List<Student> students = new ArrayList<>();
+    static List<TEst> tests = new ArrayList<>();
+    static List<Mark> marks = new ArrayList<>();
 
     public static void main(String[] args) {
 	// parse each input file to fill the courses, students, tests, marks lists
@@ -25,7 +25,7 @@ public class ReportCardMain {
 	Map<String, Student> studentIdToStudentMap = new HashMap<>();
 	Map<String, List<String>> studentIdToTestIdMap = new HashMap<>();
 	Map<String, String> testIdToCourseIdMap = new HashMap<>();
-	Map<String, List<Test>> courseIdToTestIdsMap = new HashMap<>();
+	Map<String, List<TEst>> courseIdToTestIdsMap = new HashMap<>();
 	Map<String, Double> testIdToWeightMap = new HashMap<>();
 	Map<String, Course> courseIdToCourseMap = new HashMap<>();
 	Map<Entry<String, String>, Double> twoIdsToMarkMap = new HashMap<>();
@@ -44,9 +44,9 @@ public class ReportCardMain {
      *        courseIdToTestIdsMap, testIdToWeightMap, courseIdToCourseMap,
      *        twoIdsToMarkMap
      */
-    private static void createMaps(Map<String, Student> studentIdToStudentMap,
+    static void createMaps(Map<String, Student> studentIdToStudentMap,
 	    Map<String, List<String>> studentIdToTestIdMap, Map<String, String> testIdToCourseIdMap,
-	    Map<String, List<Test>> courseIdToTestIdsMap, Map<String, Double> testIdToWeightMap,
+	    Map<String, List<TEst>> courseIdToTestIdsMap, Map<String, Double> testIdToWeightMap,
 	    Map<String, Course> courseIdToCourseMap, Map<Entry<String, String>, Double> twoIdsToMarkMap) {
 	// Student Id to student Mapping by looping students array list
 	for (Student s : students) {
@@ -70,7 +70,7 @@ public class ReportCardMain {
 	// Course id to test ids list mapping, test id to weight mapping, test id to
 	// course id mapping
 	// by looping tests array list
-	for (Test t : tests) {
+	for (TEst t : tests) {
 	    testIdToCourseIdMap.put(t.getId(), t.getCourse_id());
 	    if (!courseIdToTestIdsMap.containsKey(t.getCourse_id()))
 		courseIdToTestIdsMap.put(t.getCourse_id(), new ArrayList<>());
@@ -90,18 +90,36 @@ public class ReportCardMain {
      * 
      * @param courseIdToTestIdsMap, testIdToWeightMap
      */
-    private static void calculateGrades(Map<String, List<Test>> courseIdToTestIdsMap,
+    static void calculateGrades(Map<String, List<TEst>> courseIdToTestIdsMap,
 	    Map<String, Double> testIdToWeightMap, Map<Entry<String, String>, Double> twoIdsToMarkMap) {
 	for (Student student : students) {
 	    List<Double> finalGrades = new ArrayList<>();
+	    // Since I am looping the courses under each student, the grades stored in the
+	    // grades list
+	    // will be in corresponding same index as the courses list
 	    for (Course course : student.getCourses()) {
 		double finalGrade = 0;
 		String courseId = course.getId();
-		List<Test> relatedTests = courseIdToTestIdsMap.get(courseId);
-		for (Test eachTest : relatedTests) {
+		List<TEst> relatedTests = courseIdToTestIdsMap.get(courseId);
+		for (TEst eachTest : relatedTests) {
 		    Map.Entry<String, String> en = new AbstractMap.SimpleEntry<String, String>(eachTest.getId(),
 			    student.getStudentId());
-		    finalGrade += testIdToWeightMap.get(eachTest.getId()) / 100 * twoIdsToMarkMap.get(en);
+		    // If a student has not completed the course, meaning he/she took some tests but
+		    // not all, throw an exception. Count the mark as 0 for the test and continue
+		    // the program
+		    if (!twoIdsToMarkMap.containsKey(en)) {
+			try {
+			    throw new Exception("Student " + student.getName() + " does not have grade for test "
+				    + eachTest.getId() + " of the Course: " + course.getName()
+				    + ". The mark for the test is counted as 0 to calculate the grade of the course.");
+			} catch (Exception e) {
+			    // Now I print out in the console, it will be a good practice to print to log
+			    System.out.println(e.getMessage());
+			    finalGrade += 0;
+			}
+		    } else {
+			finalGrade += testIdToWeightMap.get(eachTest.getId()) / 100 * twoIdsToMarkMap.get(en);
+		    }
 		}
 		finalGrades.add(finalGrade); // when printing, needs to truncate to 2 decimals
 	    }
@@ -120,7 +138,7 @@ public class ReportCardMain {
      * 
      * @param studentIdToTestIdMap, testIdToCourseIdMap, studentIdToStudentMap
      */
-    private static void setEachStudentCourses(Map<String, List<String>> studentIdToTestIdMap,
+    static void setEachStudentCourses(Map<String, List<String>> studentIdToTestIdMap,
 	    Map<String, String> testIdToCourseIdMap, Map<String, Student> studentIdToStudentMap,
 	    Map<String, Course> courseIdToCourseMap) {
 	for (Entry<String, List<String>> entry : studentIdToTestIdMap.entrySet()) {
@@ -183,7 +201,7 @@ public class ReportCardMain {
      * 
      * @param filename
      */
-    private static void parseCsv(String filename) {
+    static void parseCsv(String filename) {
 	try (BufferedReader br = new BufferedReader(new FileReader(filename))) {
 	    String line;
 	    br.readLine();
@@ -196,7 +214,7 @@ public class ReportCardMain {
 		} else if (filename.equals("students.csv")) {
 		    students.add(new Student(values[0], values[1]));
 		} else if (filename.equals("tests.csv")) {
-		    tests.add(new Test(values[0], values[1], Double.valueOf(values[2])));
+		    tests.add(new TEst(values[0], values[1], Double.valueOf(values[2])));
 		} else {
 		    throw new IllegalArgumentException("Filename is not valid");
 		}
